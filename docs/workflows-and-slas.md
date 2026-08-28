@@ -24,32 +24,28 @@ Ask a question (10011) uses **SUP: Simple ESM**. Task (10013) uses **SUP: Jira S
 
 When an agent transitions a VDSD issue to **Promote to Engineering** (or clicks the Automation trigger):
 
-1. Create a **VDV** issue (Task, unless Request Type is Incident or Question).
-2. Copy intake metadata (custom fields if present, else description table + labels).
-3. Set Source = `vdsd` on VDV and Counterpart Key both ways.
-4. Link with type **Polaris work item link**: VDV `implements` VDSD / VDSD `is implemented by` VDV.
-   - `createIssueLink`: inwardIssue = VDSD key, outwardIssue = VDV key, type = `Polaris work item link` (inward “is implemented by”, outward “implements”).
+1. Create an **RND** issue: **Feature** when Intake Request Type is `Feature` or `New_Program_Launch`, otherwise **Task**.
+2. Copy intake metadata (custom fields if present, else description table + labels). Do **not** copy native JSM Organizations (`customfield_10002`).
+3. Set Source = `vdsd` on RND and Counterpart Key both ways.
+4. Link with type **Polaris work item link**: RND `implements` VDSD / VDSD `is implemented by` RND.
+   - `createIssueLink`: inwardIssue = VDSD key, outwardIssue = RND key, type = `Polaris work item link` (inward “is implemented by”, outward “implements”).
 5. Copy reporter and watchers by email.
 
-Automation rule JSON: [`automation/promote-to-vdv.json`](../automation/promote-to-vdv.json). Import under **Project settings → Automation** — REST create of Automation rules returns 401 (`scope does not match`). Runtime promote: `python scripts/promote_request.py VDSD-123` (copies custom fields and writes Counterpart Key).
+Automation rule JSON: [`automation/promote-to-rnd.json`](../automation/promote-to-rnd.json). Import under **Project settings → Automation** — REST create of Automation rules returns 401 (`scope does not match`). Runtime promote: `python scripts/promote_request.py VDSD-123` (copies custom fields, picks Feature vs Task, and writes Counterpart Key).
 
-## VDV (internal engineering)
+## RND (engineering)
 
-Target: `To Do` → `In Progress` → `In Review` → `Done`
+Team-managed software project. Work types: Epic, Feature, Task, Subtask. Statuses are project-scoped (Idea / To Do / …). GitHub-for-Jira keys off `RND-n`, not status names.
 
-Live mapping on **SUP: Jira Service Management default workflow** (Task issue type 10013):
+GitHub PR open/merge comments on the RND issue; merge does not auto-transition.
 
-| Desired | Live status | id | Transition |
-| --- | --- | --- | --- |
-| To Do | **Open** | 1 | (initial) |
-| In Progress | **Work in progress** | 10010 | Start progress |
-| In Review | **In Review** | 10021 | In Review (from Open or Work in progress) |
-| Waiting / parked | **Pending** | 10013 | Pending |
-| Done | **Done** | 10012 | Mark as done |
+PM updates (`scripts/pm_updates.py`, playbook [`config/pm-updates.json`](../config/pm-updates.json)) run as **Ted Crisp** (`jira_admin_token` and Slack `U0BTAN0LM3N`). Ted comments on RND + the linked VDSD issue and replies in the existing `#dev-updates` threads. Other watchers (Lem, Veronica, Phil, Linda) are `@mentioned` in Slack; they are not impersonated as Jira comment authors.
 
-GitHub-for-Jira keys off `VDV-n`, not status names. GitHub PR open/merge comments on the VDV issue; merge does not auto-transition.
+Bidirectional: when RND moves to In Review or Done, comment on the linked VDSD issue. VDSD **Waiting for customer** does not move RND. Status-sync Automation is UI-import only (`automation/status-sync.json`).
 
-Bidirectional: when VDV moves to In Review or Done, comment on the linked VDSD issue. VDSD **Waiting for customer** does not move VDV. Status-sync Automation is UI-import only.
+## VDV (unused)
+
+**Veridian Dynamics v2** remains as a leftover JSM project with earlier demo issues (VDV-1..5). Do not send new customer promotions there.
 
 ## SLAs (VDSD only)
 
